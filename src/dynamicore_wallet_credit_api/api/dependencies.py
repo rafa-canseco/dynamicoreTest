@@ -34,3 +34,13 @@ def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(
         ) from exc
 
     return CurrentUser(id=user_id, roles=roles)
+
+
+def require_credit_officer(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    if not {"admin", "credit_officer"}.intersection(current_user.roles):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="credit officer role required",
+        )
+
+    return current_user
