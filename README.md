@@ -32,3 +32,15 @@ Validate the current schema:
 ```bash
 sh scripts/validate_schema.sh
 ```
+
+Run the API locally:
+
+```bash
+uv run dynamicore-api
+```
+
+Run tests:
+
+```bash
+uv run pytest
+```
