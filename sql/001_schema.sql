@@ -40,6 +40,30 @@ CREATE TYPE ledger_entry_direction AS ENUM (
     'credit'
 );
 
+CREATE TYPE credit_status AS ENUM (
+    'requested',
+    'under_review',
+    'approved',
+    'rejected',
+    'active',
+    'paid',
+    'defaulted',
+    'cancelled'
+);
+
+CREATE TYPE credit_payment_status AS ENUM (
+    'pending',
+    'paid',
+    'late',
+    'waived'
+);
+
+CREATE TYPE credit_payment_method AS ENUM (
+    'wallet',
+    'external_transfer',
+    'cash'
+);
+
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL,
@@ -204,3 +228,127 @@ CREATE INDEX wallet_transaction_entries_wallet_created_at_idx
     ON wallet_transaction_entries (wallet_id, created_at DESC);
 CREATE INDEX wallet_transaction_entries_direction_idx
     ON wallet_transaction_entries (direction);
+
+-- Schema section 3: credit lifecycle, payment schedule, and repayments.
+
+CREATE TABLE credits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    disbursement_wallet_id UUID REFERENCES wallets(id) ON DELETE RESTRICT,
+    status credit_status NOT NULL DEFAULT 'requested',
+    principal_amount NUMERIC(18, 2) NOT NULL,
+    annual_interest_rate NUMERIC(7, 4) NOT NULL,
+    term_months SMALLINT NOT NULL,
+    purpose TEXT,
+    monthly_payment NUMERIC(18, 2),
+    approved_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    rejected_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    rejection_reason TEXT,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    reviewed_at TIMESTAMPTZ,
+    approved_at TIMESTAMPTZ,
+    disbursed_at TIMESTAMPTZ,
+    closed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT credits_principal_amount_positive CHECK (principal_amount > 0),
+    CONSTRAINT credits_annual_interest_rate_non_negative CHECK (annual_interest_rate >= 0),
+    CONSTRAINT credits_term_months_positive CHECK (term_months > 0),
+    CONSTRAINT credits_monthly_payment_positive CHECK (monthly_payment IS NULL OR monthly_payment > 0),
+    CONSTRAINT credits_purpose_not_blank CHECK (purpose IS NULL OR length(trim(purpose)) > 0),
+    CONSTRAINT credits_rejection_reason_not_blank CHECK (
+        rejection_reason IS NULL OR length(trim(rejection_reason)) > 0
+    ),
+    CONSTRAINT credits_approval_fields_match_status CHECK (
+        status NOT IN ('approved', 'active', 'paid', 'defaulted')
+        OR (approved_by IS NOT NULL AND approved_at IS NOT NULL)
+    ),
+    CONSTRAINT credits_rejection_fields_match_status CHECK (
+        status <> 'rejected'
+        OR (rejected_by IS NOT NULL AND rejection_reason IS NOT NULL)
+    ),
+    CONSTRAINT credits_disbursement_requires_active_or_later CHECK (
+        disbursed_at IS NULL OR status IN ('active', 'paid', 'defaulted')
+    ),
+    CONSTRAINT credits_closed_at_terminal_status CHECK (
+        closed_at IS NULL OR status IN ('paid', 'defaulted', 'cancelled', 'rejected')
+    )
+);
+
+CREATE INDEX credits_user_status_idx ON credits (user_id, status);
+CREATE INDEX credits_status_idx ON credits (status);
+CREATE INDEX credits_requested_at_idx ON credits (requested_at);
+CREATE INDEX credits_approved_by_idx ON credits (approved_by) WHERE approved_by IS NOT NULL;
+CREATE INDEX credits_disbursement_wallet_idx
+    ON credits (disbursement_wallet_id)
+    WHERE disbursement_wallet_id IS NOT NULL;
+
+CREATE TABLE credit_payment_schedule (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    credit_id UUID NOT NULL REFERENCES credits(id) ON DELETE RESTRICT,
+    installment_number SMALLINT NOT NULL,
+    due_date DATE NOT NULL,
+    principal_amount NUMERIC(18, 2) NOT NULL,
+    interest_amount NUMERIC(18, 2) NOT NULL,
+    total_amount NUMERIC(18, 2) NOT NULL,
+    remaining_amount NUMERIC(18, 2) NOT NULL,
+    status credit_payment_status NOT NULL DEFAULT 'pending',
+    paid_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT credit_payment_schedule_installment_positive CHECK (installment_number > 0),
+    CONSTRAINT credit_payment_schedule_principal_non_negative CHECK (principal_amount >= 0),
+    CONSTRAINT credit_payment_schedule_interest_non_negative CHECK (interest_amount >= 0),
+    CONSTRAINT credit_payment_schedule_total_positive CHECK (total_amount > 0),
+    CONSTRAINT credit_payment_schedule_remaining_non_negative CHECK (remaining_amount >= 0),
+    CONSTRAINT credit_payment_schedule_remaining_not_greater_than_total CHECK (remaining_amount <= total_amount),
+    CONSTRAINT credit_payment_schedule_total_matches_components CHECK (
+        total_amount = principal_amount + interest_amount
+    ),
+    CONSTRAINT credit_payment_schedule_paid_state_consistent CHECK (
+        status <> 'paid' OR (paid_at IS NOT NULL AND remaining_amount = 0)
+    ),
+    CONSTRAINT credit_payment_schedule_unpaid_state_consistent CHECK (
+        status = 'paid' OR paid_at IS NULL
+    ),
+    CONSTRAINT credit_payment_schedule_unique_installment UNIQUE (credit_id, installment_number)
+);
+
+CREATE INDEX credit_payment_schedule_credit_status_idx
+    ON credit_payment_schedule (credit_id, status);
+CREATE INDEX credit_payment_schedule_due_date_idx
+    ON credit_payment_schedule (due_date)
+    WHERE status IN ('pending', 'late');
+CREATE INDEX credit_payment_schedule_late_idx
+    ON credit_payment_schedule (credit_id, due_date)
+    WHERE status = 'late';
+
+CREATE TABLE credit_payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    credit_id UUID NOT NULL REFERENCES credits(id) ON DELETE RESTRICT,
+    schedule_id UUID REFERENCES credit_payment_schedule(id) ON DELETE RESTRICT,
+    wallet_transaction_id UUID REFERENCES wallet_transactions(id) ON DELETE RESTRICT,
+    payment_method credit_payment_method NOT NULL,
+    amount NUMERIC(18, 2) NOT NULL,
+    external_reference TEXT,
+    paid_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT credit_payments_amount_positive CHECK (amount > 0),
+    CONSTRAINT credit_payments_external_reference_not_blank CHECK (
+        external_reference IS NULL OR length(trim(external_reference)) > 0
+    ),
+    CONSTRAINT credit_payments_wallet_method_requires_transaction CHECK (
+        payment_method <> 'wallet' OR wallet_transaction_id IS NOT NULL
+    )
+);
+
+CREATE INDEX credit_payments_credit_paid_at_idx ON credit_payments (credit_id, paid_at DESC);
+CREATE INDEX credit_payments_schedule_id_idx
+    ON credit_payments (schedule_id)
+    WHERE schedule_id IS NOT NULL;
+CREATE UNIQUE INDEX credit_payments_wallet_transaction_unique_idx
+    ON credit_payments (wallet_transaction_id)
+    WHERE wallet_transaction_id IS NOT NULL;
+CREATE UNIQUE INDEX credit_payments_external_reference_unique_idx
+    ON credit_payments (external_reference)
+    WHERE external_reference IS NOT NULL;
