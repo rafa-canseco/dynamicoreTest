@@ -12,4 +12,12 @@ until docker compose exec postgres pg_isready -U dynamicore -d dynamicore >/dev/
   sleep 1
 done
 
-docker compose exec -T postgres psql -U dynamicore -d dynamicore -v ON_ERROR_STOP=1 -f /workspace/sql/001_schema.sql
+docker compose exec -T postgres psql -U dynamicore -d postgres -v ON_ERROR_STOP=1 \
+  -c "DROP DATABASE IF EXISTS dynamicore_schema_validation;"
+
+docker compose exec -T postgres psql -U dynamicore -d postgres -v ON_ERROR_STOP=1 \
+  -c "CREATE DATABASE dynamicore_schema_validation;"
+
+docker compose exec -T postgres psql -U dynamicore -d dynamicore_schema_validation \
+  -v ON_ERROR_STOP=1 \
+  -f /workspace/sql/001_schema.sql
