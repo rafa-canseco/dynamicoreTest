@@ -64,6 +64,12 @@ CREATE TYPE credit_payment_method AS ENUM (
     'cash'
 );
 
+CREATE TYPE idempotency_status AS ENUM (
+    'processing',
+    'completed',
+    'failed'
+);
+
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL,
@@ -352,3 +358,40 @@ CREATE UNIQUE INDEX credit_payments_wallet_transaction_unique_idx
 CREATE UNIQUE INDEX credit_payments_external_reference_unique_idx
     ON credit_payments (external_reference)
     WHERE external_reference IS NOT NULL;
+
+-- Schema section 4: API idempotency controls for financial operations.
+
+CREATE TABLE idempotency_keys (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    idempotency_key TEXT NOT NULL,
+    request_method TEXT NOT NULL,
+    request_path TEXT NOT NULL,
+    request_hash TEXT NOT NULL,
+    status idempotency_status NOT NULL DEFAULT 'processing',
+    response_status_code INTEGER,
+    response_body JSONB,
+    locked_until TIMESTAMPTZ NOT NULL DEFAULT now() + interval '5 minutes',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT idempotency_keys_key_not_blank CHECK (length(trim(idempotency_key)) > 0),
+    CONSTRAINT idempotency_keys_method_not_blank CHECK (length(trim(request_method)) > 0),
+    CONSTRAINT idempotency_keys_path_not_blank CHECK (length(trim(request_path)) > 0),
+    CONSTRAINT idempotency_keys_request_hash_not_blank CHECK (length(trim(request_hash)) > 0),
+    CONSTRAINT idempotency_keys_response_status_code_range CHECK (
+        response_status_code IS NULL OR response_status_code BETWEEN 100 AND 599
+    ),
+    CONSTRAINT idempotency_keys_completed_has_response CHECK (
+        status <> 'completed' OR response_status_code IS NOT NULL
+    )
+);
+
+CREATE UNIQUE INDEX idempotency_keys_user_key_idx
+    ON idempotency_keys (user_id, idempotency_key)
+    WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX idempotency_keys_anonymous_key_idx
+    ON idempotency_keys (idempotency_key)
+    WHERE user_id IS NULL;
+CREATE INDEX idempotency_keys_status_locked_until_idx
+    ON idempotency_keys (status, locked_until);
+CREATE INDEX idempotency_keys_created_at_idx ON idempotency_keys (created_at);
