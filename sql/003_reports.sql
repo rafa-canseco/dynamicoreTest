@@ -104,7 +104,7 @@ LEFT JOIN delinquency d ON d.status = ca.status
 ORDER BY ca.status;
 
 -- 4. Users with the best credit behavior: approved credits and on-time payments.
-WITH credit_behavior AS (
+WITH schedule_behavior AS (
     SELECT
         u.id AS user_id,
         u.email,
@@ -122,38 +122,45 @@ WITH credit_behavior AS (
         count(cps.id) FILTER (
             WHERE cps.status = 'late'
                OR (cps.status = 'pending' AND cps.due_date < CURRENT_DATE)
-        ) AS late_or_overdue_installments,
-        sum(cp.amount) AS total_paid_amount
+        ) AS late_or_overdue_installments
     FROM users u
     LEFT JOIN credits c ON c.user_id = u.id
     LEFT JOIN credit_payment_schedule cps ON cps.credit_id = c.id
-    LEFT JOIN credit_payments cp ON cp.credit_id = c.id
     GROUP BY
         u.id,
         u.email,
         u.first_name,
         u.last_name,
         u.credit_score
+),
+payment_totals AS (
+    SELECT
+        c.user_id,
+        sum(cp.amount) AS total_paid_amount
+    FROM credits c
+    JOIN credit_payments cp ON cp.credit_id = c.id
+    GROUP BY c.user_id
 )
 SELECT
-    user_id,
-    email,
-    first_name,
-    last_name,
-    credit_score,
-    approved_credit_count,
-    paid_installments,
-    on_time_installments,
-    late_or_overdue_installments,
-    coalesce(total_paid_amount, 0) AS total_paid_amount,
+    sb.user_id,
+    sb.email,
+    sb.first_name,
+    sb.last_name,
+    sb.credit_score,
+    sb.approved_credit_count,
+    sb.paid_installments,
+    sb.on_time_installments,
+    sb.late_or_overdue_installments,
+    coalesce(pt.total_paid_amount, 0) AS total_paid_amount,
     CASE
-        WHEN paid_installments = 0 THEN 0
-        ELSE round((on_time_installments::NUMERIC / paid_installments) * 100, 2)
+        WHEN sb.paid_installments = 0 THEN 0
+        ELSE round((sb.on_time_installments::NUMERIC / sb.paid_installments) * 100, 2)
     END AS on_time_payment_percentage
-FROM credit_behavior
-WHERE approved_credit_count > 0
+FROM schedule_behavior sb
+LEFT JOIN payment_totals pt ON pt.user_id = sb.user_id
+WHERE sb.approved_credit_count > 0
 ORDER BY
     on_time_payment_percentage DESC,
-    late_or_overdue_installments ASC,
-    approved_credit_count DESC,
-    credit_score DESC NULLS LAST;
+    sb.late_or_overdue_installments ASC,
+    sb.approved_credit_count DESC,
+    sb.credit_score DESC NULLS LAST;

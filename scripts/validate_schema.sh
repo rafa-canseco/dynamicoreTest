@@ -29,3 +29,11 @@ docker compose exec -T postgres psql -U dynamicore -d dynamicore_schema_validati
 docker compose exec -T postgres psql -U dynamicore -d dynamicore_schema_validation \
   -v ON_ERROR_STOP=1 \
   -f /workspace/sql/003_reports.sql
+
+docker compose exec -T postgres psql -U dynamicore -d dynamicore_schema_validation \
+  -v ON_ERROR_STOP=1 \
+  -f /workspace/sql/004_seed.sql
+
+docker compose exec -T postgres psql -U dynamicore -d dynamicore_schema_validation \
+  -v ON_ERROR_STOP=1 \
+  -f /workspace/sql/003_reports.sql
