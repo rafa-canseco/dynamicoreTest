@@ -33,6 +33,12 @@ Validate the current schema:
 sh scripts/validate_schema.sh
 ```
 
+Reset the local API database with demo data:
+
+```bash
+sh scripts/reset_local_db.sh
+```
+
 Run the API locally:
 
 ```bash

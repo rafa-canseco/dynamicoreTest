@@ -7,7 +7,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "Dynamicore Wallet Credit API"
     app_env: str = Field(default="local", alias="APP_ENV")
-    app_secret_key: str = Field(default="change-me", alias="APP_SECRET_KEY")
+    app_secret_key: str = Field(
+        default="local-development-secret-key-change-before-production",
+        alias="APP_SECRET_KEY",
+    )
     database_url: str = Field(
         default="postgresql://dynamicore:dynamicore@localhost:5432/dynamicore",
         alias="DATABASE_URL",
