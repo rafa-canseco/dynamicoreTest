@@ -23,6 +23,10 @@
     {
       "key": "credit_id",
       "value": ""
+    },
+    {
+      "key": "schedule_id",
+      "value": ""
     }
   ],
   "item": [
@@ -63,7 +67,19 @@
               "raw": "{\n  \"email\": \"postman.user@example.com\",\n  \"password\": \"super-secret-123\",\n  \"first_name\": \"Postman\",\n  \"last_name\": \"User\",\n  \"credit_score\": 700,\n  \"monthly_income\": 45000\n}"
             },
             "url": "{{base_url}}/auth/register"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access_token) pm.collectionVariables.set(\"access_token\", json.access_token);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Login",
@@ -80,7 +96,19 @@
               "raw": "{\n  \"email\": \"postman.user@example.com\",\n  \"password\": \"super-secret-123\"\n}"
             },
             "url": "{{base_url}}/auth/login"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access_token) pm.collectionVariables.set(\"access_token\", json.access_token);"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -106,7 +134,19 @@
               "raw": "{\n  \"currency\": \"MXN\"\n}"
             },
             "url": "{{base_url}}/wallets"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set(\"wallet_id\", json.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "List Wallets",
@@ -251,7 +291,19 @@
               "raw": "{\n  \"disbursement_wallet_id\": \"{{wallet_id}}\",\n  \"principal_amount\": \"5000.00\",\n  \"annual_interest_rate\": \"18.0000\",\n  \"term_months\": 12,\n  \"purpose\": \"Working capital\"\n}"
             },
             "url": "{{base_url}}/credits"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set(\"credit_id\", json.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "List Credits",
@@ -290,7 +342,19 @@
               }
             ],
             "url": "{{base_url}}/credits/{{credit_id}}/schedule"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json[0]?.id) pm.collectionVariables.set(\"schedule_id\", json[0].id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Approve Credit",
@@ -311,6 +375,48 @@
               "raw": "{}"
             },
             "url": "{{base_url}}/credits/{{credit_id}}/approve"
+          }
+        },
+        {
+          "name": "Reject Credit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rejection_reason\": \"Insufficient credit history\"\n}"
+            },
+            "url": "{{base_url}}/credits/{{credit_id}}/reject"
+          }
+        },
+        {
+          "name": "Pay Credit Installment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"schedule_id\": \"{{schedule_id}}\",\n  \"amount\": \"100.00\",\n  \"payment_method\": \"external_transfer\",\n  \"external_reference\": \"postman-payment-{{$guid}}\"\n}"
+            },
+            "url": "{{base_url}}/credits/{{credit_id}}/payments"
           }
         }
       ]
