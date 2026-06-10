@@ -45,6 +45,12 @@ Reset the local API database with demo data:
 sh scripts/reset_local_db.sh
 ```
 
+Run database migrations with Alembic:
+
+```bash
+uv run alembic upgrade head
+```
+
 Run the API locally:
 
 ```bash

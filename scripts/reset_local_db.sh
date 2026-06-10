@@ -6,6 +6,11 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 127
 fi
 
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv is required to run Alembic migrations." >&2
+  exit 127
+fi
+
 docker compose up -d postgres
 
 until docker compose exec postgres pg_isready -U dynamicore -d dynamicore >/dev/null 2>&1; do
@@ -18,13 +23,7 @@ docker compose exec -T postgres psql -U dynamicore -d postgres -v ON_ERROR_STOP=
 docker compose exec -T postgres psql -U dynamicore -d postgres -v ON_ERROR_STOP=1 \
   -c "CREATE DATABASE dynamicore;"
 
-docker compose exec -T postgres psql -U dynamicore -d dynamicore \
-  -v ON_ERROR_STOP=1 \
-  -f /workspace/sql/001_schema.sql
-
-docker compose exec -T postgres psql -U dynamicore -d dynamicore \
-  -v ON_ERROR_STOP=1 \
-  -f /workspace/sql/002_functions_triggers.sql
+uv run alembic upgrade head
 
 docker compose exec -T postgres psql -U dynamicore -d dynamicore \
   -v ON_ERROR_STOP=1 \
