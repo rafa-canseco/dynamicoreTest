@@ -89,6 +89,8 @@ GET  /credits
 GET  /credits/{credit_id}
 GET  /credits/{credit_id}/schedule
 POST /credits/{credit_id}/approve
+POST /credits/{credit_id}/reject
+POST /credits/{credit_id}/payments
 ```
 
 Financial transaction endpoints require:
