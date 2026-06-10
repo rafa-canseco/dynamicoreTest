@@ -98,6 +98,86 @@ Authorization: Bearer <access_token>
 Idempotency-Key: <unique-client-generated-key>
 ```
 
+## curl Examples
+
+Register a user:
+
+```bash
+curl -s -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "curl.user@example.com",
+    "password": "super-secret-123",
+    "first_name": "Curl",
+    "last_name": "User",
+    "credit_score": 700,
+    "monthly_income": 45000
+  }'
+```
+
+Login:
+
+```bash
+curl -s -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "curl.user@example.com",
+    "password": "super-secret-123"
+  }'
+```
+
+Create a wallet:
+
+```bash
+curl -s -X POST http://localhost:8000/wallets \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"currency": "MXN"}'
+```
+
+Deposit funds:
+
+```bash
+curl -s -X POST http://localhost:8000/transactions/deposit \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Idempotency-Key: deposit-001" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wallet_id": "'$WALLET_ID'",
+    "amount": "1000.00",
+    "description": "Initial deposit"
+  }'
+```
+
+Request a credit:
+
+```bash
+curl -s -X POST http://localhost:8000/credits \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "disbursement_wallet_id": "'$WALLET_ID'",
+    "principal_amount": "5000.00",
+    "annual_interest_rate": "18.0000",
+    "term_months": 12,
+    "purpose": "Working capital"
+  }'
+```
+
+Pay a credit installment:
+
+```bash
+curl -s -X POST http://localhost:8000/credits/$CREDIT_ID/payments \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "schedule_id": "'$SCHEDULE_ID'",
+    "amount": "458.40",
+    "payment_method": "external_transfer",
+    "external_reference": "payment-001"
+  }'
+```
+
 ## SQL Deliverables
 
 ```text
