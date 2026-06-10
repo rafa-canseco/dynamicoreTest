@@ -1,0 +1,11 @@
+[project]
+name = "dynamicore-wallet-credit-api"
+version = "0.1.0"
+description = "FastAPI backend for a wallet and credit platform technical assessment."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
