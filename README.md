@@ -33,6 +33,60 @@ scripts/     Scripts locales de validacion y reset de base de datos.
 - uv
 - Docker
 
+## Levantar Desde Cero Para Evaluacion
+
+Clonar el repositorio:
+
+```bash
+git clone git@github.com:rafa-canseco/dynamicoreTest.git
+cd dynamicoreTest
+```
+
+Instalar dependencias con `uv`:
+
+```bash
+uv sync
+```
+
+Levantar PostgreSQL local con Docker:
+
+```bash
+docker compose up -d postgres
+```
+
+Crear la base desde cero con Alembic y cargar datos demo:
+
+```bash
+sh scripts/reset_local_db.sh
+```
+
+Validar que todo funcione:
+
+```bash
+uv run pytest
+sh scripts/validate_schema.sh
+```
+
+Levantar la API:
+
+```bash
+uv run dynamicore-api
+```
+
+Abrir la documentacion interactiva:
+
+```text
+http://localhost:8000/docs
+```
+
+La configuracion local por default apunta a:
+
+```text
+postgresql://dynamicore:dynamicore@localhost:5432/dynamicore
+```
+
+No es necesario crear un archivo `.env` para probar localmente. Si se desea cambiar la configuracion, se puede usar `.env.example` como referencia.
+
 ## Como Levantar El Proyecto
 
 Desde la raiz del repo:
