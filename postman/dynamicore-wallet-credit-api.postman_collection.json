@@ -1,0 +1,319 @@
+{
+  "info": {
+    "name": "Dynamicore Wallet Credit API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "wallet_id",
+      "value": ""
+    },
+    {
+      "key": "destination_wallet_id",
+      "value": ""
+    },
+    {
+      "key": "credit_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        },
+        {
+          "name": "Database Health",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health/db"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.user@example.com\",\n  \"password\": \"super-secret-123\",\n  \"first_name\": \"Postman\",\n  \"last_name\": \"User\",\n  \"credit_score\": 700,\n  \"monthly_income\": 45000\n}"
+            },
+            "url": "{{base_url}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.user@example.com\",\n  \"password\": \"super-secret-123\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "item": [
+        {
+          "name": "Create Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currency\": \"MXN\"\n}"
+            },
+            "url": "{{base_url}}/wallets"
+          }
+        },
+        {
+          "name": "List Wallets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/wallets"
+          }
+        },
+        {
+          "name": "Wallet Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/wallets/{{wallet_id}}"
+          }
+        },
+        {
+          "name": "Wallet Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/wallets/{{wallet_id}}/transactions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "deposit-{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wallet_id\": \"{{wallet_id}}\",\n  \"amount\": \"1000.00\",\n  \"description\": \"Postman deposit\"\n}"
+            },
+            "url": "{{base_url}}/transactions/deposit"
+          }
+        },
+        {
+          "name": "Withdraw",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "withdraw-{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wallet_id\": \"{{wallet_id}}\",\n  \"amount\": \"100.00\",\n  \"description\": \"Postman withdrawal\"\n}"
+            },
+            "url": "{{base_url}}/transactions/withdraw"
+          }
+        },
+        {
+          "name": "Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "transfer-{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_wallet_id\": \"{{wallet_id}}\",\n  \"destination_wallet_id\": \"{{destination_wallet_id}}\",\n  \"amount\": \"250.00\",\n  \"description\": \"Postman transfer\"\n}"
+            },
+            "url": "{{base_url}}/transactions/transfer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Credits",
+      "item": [
+        {
+          "name": "Create Credit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"disbursement_wallet_id\": \"{{wallet_id}}\",\n  \"principal_amount\": \"5000.00\",\n  \"annual_interest_rate\": \"18.0000\",\n  \"term_months\": 12,\n  \"purpose\": \"Working capital\"\n}"
+            },
+            "url": "{{base_url}}/credits"
+          }
+        },
+        {
+          "name": "List Credits",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/credits"
+          }
+        },
+        {
+          "name": "Credit Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/credits/{{credit_id}}"
+          }
+        },
+        {
+          "name": "Credit Schedule",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": "{{base_url}}/credits/{{credit_id}}/schedule"
+          }
+        },
+        {
+          "name": "Approve Credit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{base_url}}/credits/{{credit_id}}/approve"
+          }
+        }
+      ]
+    }
+  ]
+}

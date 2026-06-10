@@ -21,6 +21,12 @@ tests/     Automated test suite.
 
 ## Local Database
 
+Prerequisites:
+
+- Python 3.12
+- uv
+- Docker
+
 Start PostgreSQL:
 
 ```bash
@@ -45,8 +51,58 @@ Run the API locally:
 uv run dynamicore-api
 ```
 
+Open API docs:
+
+```text
+http://localhost:8000/docs
+```
+
 Run tests:
 
 ```bash
 uv run pytest
 ```
+
+## Main Endpoints
+
+```text
+POST /auth/register
+POST /auth/login
+
+POST /wallets
+GET  /wallets
+GET  /wallets/{wallet_id}
+GET  /wallets/{wallet_id}/transactions
+
+POST /transactions/deposit
+POST /transactions/withdraw
+POST /transactions/transfer
+
+POST /credits
+GET  /credits
+GET  /credits/{credit_id}
+GET  /credits/{credit_id}/schedule
+POST /credits/{credit_id}/approve
+```
+
+Financial transaction endpoints require:
+
+```text
+Authorization: Bearer <access_token>
+Idempotency-Key: <unique-client-generated-key>
+```
+
+## SQL Deliverables
+
+```text
+sql/001_schema.sql              Tables, enums, constraints, foreign keys, indexes.
+sql/002_functions_triggers.sql  PostgreSQL functions and triggers.
+sql/003_reports.sql             Advanced reporting queries.
+sql/004_seed.sql                Demo data for local testing.
+```
+
+## Documentation
+
+- [ER diagram](docs/er-diagram.md)
+- [Design decisions](docs/design-decisions.md)
+- [Postman collection](postman/dynamicore-wallet-credit-api.postman_collection.json)
