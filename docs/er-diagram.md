@@ -1,6 +1,6 @@
 # Diagrama ER
 
-El siguiente diagrama muestra las entidades principales del sistema de wallets y creditos. Los nombres de tablas y columnas se mantienen en ingles para coincidir con el schema SQL.
+El siguiente diagrama muestra las entidades principales del sistema de wallets y creditos.
 
 ```mermaid
 erDiagram

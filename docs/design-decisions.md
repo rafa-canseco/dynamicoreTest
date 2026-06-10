@@ -119,25 +119,6 @@ La coleccion Postman incluye scripts para guardar automaticamente:
 
 Esto reduce friccion al revisar el flujo completo.
 
-## Blockchain Como Mejora Futura
-
-No implemente blockchain porque el requerimiento principal evalua PostgreSQL, API REST y funciones avanzadas en base de datos. Para este caso, PostgreSQL es mas adecuado como ledger operacional por:
-
-- Baja latencia.
-- Privacidad de datos personales y crediticios.
-- Reversibilidad operacional ante errores, fraudes o disputas.
-- Consultas financieras complejas.
-- Control regulatorio interno.
-
-Blockchain podria aportar valor como capa complementaria, no como reemplazo directo del core:
-
-- Prueba criptografica de integridad de snapshots del ledger.
-- Auditoria externa verificable.
-- Liquidacion entre instituciones.
-- Registro inmutable de hashes de lotes contables.
-
-El diseno recomendado seria mantener PostgreSQL como sistema transaccional principal y publicar hashes agregados o eventos seleccionados a una red blockchain solo cuando exista un caso de negocio claro.
-
 ## Mejoras Futuras
 
 - Refresh tokens y revocacion de JWT.
