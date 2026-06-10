@@ -18,3 +18,17 @@ postman/   API collection for manual validation.
 src/       FastAPI application source code.
 tests/     Automated test suite.
 ```
+
+## Local Database
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d postgres
+```
+
+Validate the current schema:
+
+```bash
+sh scripts/validate_schema.sh
+```
