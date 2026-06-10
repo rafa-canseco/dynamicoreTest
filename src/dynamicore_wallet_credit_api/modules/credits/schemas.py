@@ -17,6 +17,18 @@ class CreditApproveRequest(BaseModel):
     term_months: int | None = Field(default=None, gt=0, le=120)
 
 
+class CreditRejectRequest(BaseModel):
+    rejection_reason: str = Field(min_length=1, max_length=255)
+
+
+class CreditPaymentRequest(BaseModel):
+    schedule_id: UUID
+    amount: Decimal = Field(gt=0, decimal_places=2)
+    payment_method: str = Field(pattern="^(wallet|external_transfer|cash)$")
+    wallet_id: UUID | None = None
+    external_reference: str | None = Field(default=None, max_length=160)
+
+
 class CreditResponse(BaseModel):
     id: UUID
     user_id: UUID
@@ -38,3 +50,14 @@ class CreditScheduleItem(BaseModel):
     total_amount: Decimal
     remaining_amount: Decimal
     status: str
+
+
+class CreditPaymentResponse(BaseModel):
+    id: UUID
+    credit_id: UUID
+    schedule_id: UUID | None
+    wallet_transaction_id: UUID | None
+    payment_method: str
+    amount: Decimal
+    external_reference: str | None
+    paid_at: str

@@ -7,6 +7,9 @@ from dynamicore_wallet_credit_api.db.connection import get_connection
 from dynamicore_wallet_credit_api.modules.credits.schemas import (
     CreditApproveRequest,
     CreditCreateRequest,
+    CreditPaymentRequest,
+    CreditPaymentResponse,
+    CreditRejectRequest,
     CreditResponse,
     CreditScheduleItem,
 )
@@ -16,6 +19,8 @@ from dynamicore_wallet_credit_api.modules.credits.service import (
     get_credit,
     get_credit_schedule,
     list_credits,
+    pay_credit_installment,
+    reject_credit,
 )
 
 router = APIRouter(prefix="/credits", tags=["credits"])
@@ -62,3 +67,23 @@ def approve_credit_endpoint(
 ) -> CreditResponse:
     with get_connection() as connection:
         return approve_credit(connection, credit_id, current_user.id, payload)
+
+
+@router.post("/{credit_id}/reject", response_model=CreditResponse)
+def reject_credit_endpoint(
+    credit_id: UUID,
+    payload: CreditRejectRequest,
+    current_user: CurrentUser = Depends(require_credit_officer),
+) -> CreditResponse:
+    with get_connection() as connection:
+        return reject_credit(connection, credit_id, current_user.id, payload)
+
+
+@router.post("/{credit_id}/payments", response_model=CreditPaymentResponse, status_code=201)
+def pay_credit_installment_endpoint(
+    credit_id: UUID,
+    payload: CreditPaymentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+) -> CreditPaymentResponse:
+    with get_connection() as connection:
+        return pay_credit_installment(connection, current_user.id, credit_id, payload)

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -149,6 +150,117 @@ def test_approve_credit_generates_payment_schedule() -> None:
     schedule = schedule_response.json()
     assert len(schedule) == 12
     assert schedule[0]["installment_number"] == 1
+
+
+def test_reject_credit_requires_credit_officer() -> None:
+    user_token = _register_user_token("credit-reject")
+    user_headers = {"Authorization": f"Bearer {user_token}"}
+    officer_token = _create_credit_officer_token()
+    officer_headers = {"Authorization": f"Bearer {officer_token}"}
+    wallet = _create_wallet(user_token)
+
+    create_response = client.post(
+        "/credits",
+        json={
+            "disbursement_wallet_id": wallet["id"],
+            "principal_amount": "4000.00",
+            "annual_interest_rate": "18.0000",
+            "term_months": 10,
+        },
+        headers=user_headers,
+    )
+    credit_id = create_response.json()["id"]
+
+    forbidden_response = client.post(
+        f"/credits/{credit_id}/reject",
+        json={"rejection_reason": "Insufficient income history"},
+        headers=user_headers,
+    )
+    assert forbidden_response.status_code == 403
+
+    reject_response = client.post(
+        f"/credits/{credit_id}/reject",
+        json={"rejection_reason": "Insufficient income history"},
+        headers=officer_headers,
+    )
+
+    assert reject_response.status_code == 200
+    assert reject_response.json()["status"] == "rejected"
+
+
+def test_pay_credit_installment_with_external_transfer_and_wallet() -> None:
+    user_token = _register_user_token("credit-payment")
+    user_headers = {"Authorization": f"Bearer {user_token}"}
+    officer_token = _create_credit_officer_token()
+    officer_headers = {"Authorization": f"Bearer {officer_token}"}
+    wallet = _create_wallet(user_token)
+
+    deposit_response = client.post(
+        "/transactions/deposit",
+        json={"wallet_id": wallet["id"], "amount": "1000.00"},
+        headers={**user_headers, "Idempotency-Key": f"credit-payment-deposit-{uuid4()}"},
+    )
+    assert deposit_response.status_code == 201
+
+    create_response = client.post(
+        "/credits",
+        json={
+            "disbursement_wallet_id": wallet["id"],
+            "principal_amount": "1200.00",
+            "annual_interest_rate": "12.0000",
+            "term_months": 2,
+        },
+        headers=user_headers,
+    )
+    credit = create_response.json()
+
+    approve_response = client.post(
+        f"/credits/{credit['id']}/approve",
+        json={},
+        headers=officer_headers,
+    )
+    assert approve_response.status_code == 200
+
+    schedule = client.get(f"/credits/{credit['id']}/schedule", headers=user_headers).json()
+    first_installment = schedule[0]
+    second_installment = schedule[1]
+
+    external_payment_response = client.post(
+        f"/credits/{credit['id']}/payments",
+        json={
+            "schedule_id": first_installment["id"],
+            "amount": first_installment["remaining_amount"],
+            "payment_method": "external_transfer",
+            "external_reference": f"external-payment-{uuid4()}",
+        },
+        headers=user_headers,
+    )
+    assert external_payment_response.status_code == 201
+    assert external_payment_response.json()["payment_method"] == "external_transfer"
+
+    wallet_payment_response = client.post(
+        f"/credits/{credit['id']}/payments",
+        json={
+            "schedule_id": second_installment["id"],
+            "amount": second_installment["remaining_amount"],
+            "payment_method": "wallet",
+            "wallet_id": wallet["id"],
+            "external_reference": f"wallet-credit-payment-{uuid4()}",
+        },
+        headers=user_headers,
+    )
+    assert wallet_payment_response.status_code == 201
+    assert wallet_payment_response.json()["wallet_transaction_id"] is not None
+
+    paid_schedule = client.get(f"/credits/{credit['id']}/schedule", headers=user_headers).json()
+    assert [item["status"] for item in paid_schedule] == ["paid", "paid"]
+
+    paid_credit = client.get(f"/credits/{credit['id']}", headers=user_headers).json()
+    assert paid_credit["status"] == "paid"
+
+    wallet_response = client.get(f"/wallets/{wallet['id']}", headers=user_headers)
+    assert wallet_response.status_code == 200
+    assert Decimal(wallet_response.json()["balance"]) < Decimal("1000.00")
 
 
 def test_user_cannot_access_another_users_credit() -> None:
