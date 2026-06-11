@@ -4,6 +4,13 @@ Prueba tecnica backend para una plataforma financiera que combina wallets digita
 
 El proyecto esta construido con FastAPI, PostgreSQL, Alembic, JWT, control de roles, rate limiting, idempotencia para operaciones financieras y una coleccion Postman para validacion manual.
 
+## Documentacion
+
+- [Diagrama ER](docs/er-diagram.md)
+- [Decisiones de diseno](docs/design-decisions.md)
+- [Checklist de evaluacion](docs/evaluation-checklist.md)
+- [Coleccion Postman](postman/dynamicore-wallet-credit-api.postman_collection.json)
+
 ## Alcance
 
 - Modelo financiero en PostgreSQL con integridad referencial, constraints, indices, funciones y triggers.
@@ -325,10 +332,3 @@ sql/002_functions_triggers.sql  Funciones y triggers PostgreSQL.
 sql/003_reports.sql             Consultas avanzadas de reportes fintech.
 sql/004_seed.sql                Datos demo para validacion local.
 ```
-
-## Documentacion
-
-- [Diagrama ER](docs/er-diagram.md)
-- [Decisiones de diseno](docs/design-decisions.md)
-- [Checklist de evaluacion](docs/evaluation-checklist.md)
-- [Coleccion Postman](postman/dynamicore-wallet-credit-api.postman_collection.json)
